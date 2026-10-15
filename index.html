@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Đề Thi Trắc Nghiệm THPT</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-color: #38bdf8;
+            --accent-hover: #0ea5e9;
+            --border-color: #334155;
+            --badge-bg: rgba(56, 189, 248, 0.15);
+        }
+        body.light-mode {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-color: #0f172a;
+            --text-muted: #64748b;
+            --accent-color: #0284c7;
+            --accent-hover: #0369a1;
+            --border-color: #e2e8f0;
+            --badge-bg: rgba(2, 132, 199, 0.1);
+        }
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 2rem;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1rem;
+        }
+        h1 {
+            font-size: 1.75rem;
+            margin: 0;
+        }
+        .theme-toggle {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .controls {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+        }
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+            padding: 0.75rem 1rem;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            outline: none;
+        }
+        .subject-filter {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .filter-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 0.6rem 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .filter-btn.active, .filter-btn:hover {
+            background: var(--accent-color);
+            color: #ffffff;
+            border-color: var(--accent-color);
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 0.75rem;
+        }
+        /* Thu nhỏ kích thước ô bằng cách giảm padding và bỏ khoảng cách thừa */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 0.85rem 1rem;
+            text-decoration: none;
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            transition: transform 0.2s, border-color 0.2s;
+            cursor: pointer;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent-color);
+        }
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+        }
+        .badge {
+            background: var(--badge-bg);
+            color: var(--accent-color);
+            padding: 0.15rem 0.4rem;
+            border-radius: 0.25rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .locked-badge {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+            padding: 0.15rem 0.4rem;
+            border-radius: 0.25rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .card-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+            word-break: break-all;
+        }
+        .count-info {
+            margin-bottom: 1rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📚 Kho Đề Thi Trắc Nghiệm THPT</h1>
+            <button class="theme-toggle" onclick="toggleTheme()">🌓 Đổi Giao Diện</button>
+        </header>
+        
+        <div class="controls">
+            <input type="text" id="searchInput" class="search-box" placeholder="🔍 Tìm mã đề..." onkeyup="filterDeThi()">
+            <div class="subject-filter">
+                <button class="filter-btn active" onclick="filterSubject('ALL', this)">Tất Cả</button>
+                <button class="filter-btn" onclick="filterSubject('Anh', this)">Môn Anh</button>
+                <button class="filter-btn" onclick="filterSubject('Hóa', this)">Môn Hóa</button>
+                <button class="filter-btn" onclick="filterSubject('Lý', this)">Môn Lý</button>
+                <button class="filter-btn" onclick="filterSubject('Toán', this)">Môn Toán</button>
+                <button class="filter-btn" onclick="filterSubject('Văn', this)">Môn Văn</button>
+            </div>
+        </div>
+
+        <div class="count-info">Tổng số: <b>90</b> đề thi</div>
+        
+        <div class="grid" id="gridContainer">
+            <div class="card" data-subject="Anh" data-subkeys='[]' onclick="checkAccess('Anh/Anh.TN.26.ma_1101.html', 'Anh', 'Anh.TN.26.ma_1101', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Anh</span>
+                </div>
+                <div class="card-title">Anh.TN.26.ma_1101</div>
+            </div>
+            <div class="card" data-subject="Anh" data-subkeys='[]' onclick="checkAccess('Anh/Anh.TN.26.ma_1102.html', 'Anh', 'Anh.TN.26.ma_1102', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Anh</span>
+                </div>
+                <div class="card-title">Anh.TN.26.ma_1102</div>
+            </div>
+            <div class="card" data-subject="Anh" data-subkeys='[]' onclick="checkAccess('Anh/Anh.TN.26.ma_1103.html', 'Anh', 'Anh.TN.26.ma_1103', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Anh</span>
+                </div>
+                <div class="card-title">Anh.TN.26.ma_1103</div>
+            </div>
+            <div class="card" data-subject="Anh" data-subkeys='[]' onclick="checkAccess('Anh/Anh.TN.26.ma_1104.html', 'Anh', 'Anh.TN.26.ma_1104', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Anh</span>
+                </div>
+                <div class="card-title">Anh.TN.26.ma_1104</div>
+            </div>
+            <div class="card" data-subject="Anh" data-subkeys='[]' onclick="checkAccess('Anh/Anh.TN.26.ma_1105.html', 'Anh', 'Anh.TN.26.ma_1105', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Anh</span>
+                </div>
+                <div class="card-title">Anh.TN.26.ma_1105</div>
+            </div>
+            <div class="card" data-subject="Anh" data-subkeys='[]' onclick="checkAccess('Anh/Anh.TN.26.ma_1106.html', 'Anh', 'Anh.TN.26.ma_1106', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Anh</span>
+                </div>
+                <div class="card-title">Anh.TN.26.ma_1106</div>
+            </div>
+            <div class="card" data-subject="Anh" data-subkeys='["Anh/\u00d4n"]' onclick="checkAccess('Anh/Ôn/Anh.TN.26.ma_2101.html', 'Anh', 'Anh.TN.26.ma_2101', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Anh</span> <span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">📁 Ôn</span> <span class="locked-badge">📂 Khóa Thư Mục</span>
+                </div>
+                <div class="card-title">Anh.TN.26.ma_2101</div>
+            </div>
+            <div class="card" data-subject="Hóa" data-subkeys='[]' onclick="checkAccess('Hóa/Hóa.TN.26.ma_0035.html', 'Hóa', 'Hóa.TN.26.ma_0035', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Hóa</span>
+                </div>
+                <div class="card-title">Hóa.TN.26.ma_0035</div>
+            </div>
+            <div class="card" data-subject="Lý" data-subkeys='[]' onclick="checkAccess('Lý/Lý.TN.26.ma_01.html', 'Lý', 'Lý.TN.26.ma_01', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Lý</span>
+                </div>
+                <div class="card-title">Lý.TN.26.ma_01</div>
+            </div>
+            <div class="card" data-subject="Lý" data-subkeys='[]' onclick="checkAccess('Lý/Lý.TN.26.ma_0201.html', 'Lý', 'Lý.TN.26.ma_0201', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Lý</span>
+                </div>
+                <div class="card-title">Lý.TN.26.ma_0201</div>
+            </div>
+            <div class="card" data-subject="Lý" data-subkeys='[]' onclick="checkAccess('Lý/Lý.TN.26.ma_0241.html', 'Lý', 'Lý.TN.26.ma_0241', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Lý</span>
+                </div>
+                <div class="card-title">Lý.TN.26.ma_0241</div>
+            </div>
+            <div class="card" data-subject="Lý" data-subkeys='[]' onclick="checkAccess('Lý/Lý.TN.25.ma_01.html', 'Lý', 'Lý.TN.25.ma_01', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Lý</span>
+                </div>
+                <div class="card-title">Lý.TN.25.ma_01</div>
+            </div>
+            <div class="card" data-subject="Lý" data-subkeys='[]' onclick="checkAccess('Lý/Lý.TN.26_ma_0210.html', 'Lý', 'Lý.TN.26_ma_0210', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Lý</span>
+                </div>
+                <div class="card-title">Lý.TN.26_ma_0210</div>
+            </div>
+            <div class="card" data-subject="Toán" data-subkeys='[]' onclick="checkAccess('Toán/Toán.TN.27.ma_8001.html', 'Toán', 'Toán.TN.27.ma_8001', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Toán</span>
+                </div>
+                <div class="card-title">Toán.TN.27.ma_8001</div>
+            </div>
+            <div class="card" data-subject="Toán" data-subkeys='[]' onclick="checkAccess('Toán/Toán.TN.27.ma_8002.html', 'Toán', 'Toán.TN.27.ma_8002', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Toán</span>
+                </div>
+                <div class="card-title">Toán.TN.27.ma_8002</div>
+            </div>
+            <div class="card" data-subject="Toán" data-subkeys='[]' onclick="checkAccess('Toán/Toán.TN.27.ma_8010.html', 'Toán', 'Toán.TN.27.ma_8010', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Toán</span>
+                </div>
+                <div class="card-title">Toán.TN.27.ma_8010</div>
+            </div>
+            <div class="card" data-subject="Toán" data-subkeys='[]' onclick="checkAccess('Toán/Toán.TN.27.ma_8011.html', 'Toán', 'Toán.TN.27.ma_8011', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Toán</span>
+                </div>
+                <div class="card-title">Toán.TN.27.ma_8011</div>
+            </div>
+            <div class="card" data-subject="Toán" data-subkeys='[]' onclick="checkAccess('Toán/Toán.TN.27.ma_8012.html', 'Toán', 'Toán.TN.27.ma_8012', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Toán</span>
+                </div>
+                <div class="card-title">Toán.TN.27.ma_8012</div>
+            </div>
+            <div class="card" data-subject="Toán" data-subkeys='[]' onclick="checkAccess('Toán/Toán.TN.26.ma_0101.html', 'Toán', 'Toán.TN.26.ma_0101', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Toán</span>
+                </div>
+                <div class="card-title">Toán.TN.26.ma_0101</div>
+            </div>
+            <div class="card" data-subject="Toán" data-subkeys='[]' onclick="checkAccess('Toán/Toán.TN.26.ma_0102.html', 'Toán', 'Toán.TN.26.ma_0102', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Toán</span>
+                </div>
+                <div class="card-title">Toán.TN.26.ma_0102</div>
+            </div>
+            <div class="card" data-subject="Toán" data-subkeys='[]' onclick="checkAccess('Toán/Toán.TN.26.ma_0103.html', 'Toán', 'Toán.TN.26.ma_0103', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Toán</span>
+                </div>
+                <div class="card-title">Toán.TN.26.ma_0103</div>
+            </div>
+            <div class="card" data-subject="Toán" data-subkeys='[]' onclick="checkAccess('Toán/Toán.TN.26.ma_0104.html', 'Toán', 'Toán.TN.26.ma_0104', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Toán</span>
+                </div>
+                <div class="card-title">Toán.TN.26.ma_0104</div>
+            </div>
+            <div class="card" data-subject="Toán" data-subkeys='[]' onclick="checkAccess('Toán/Toán.TN.26.ma_0110.html', 'Toán', 'Toán.TN.26.ma_0110', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Toán</span>
+                </div>
+                <div class="card-title">Toán.TN.26.ma_0110</div>
+            </div>
+            <div class="card" data-subject="Toán" data-subkeys='[]' onclick="checkAccess('Toán/Toán.TN.26.ma_8003.html', 'Toán', 'Toán.TN.26.ma_8003', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Toán</span>
+                </div>
+                <div class="card-title">Toán.TN.26.ma_8003</div>
+            </div>
+            <div class="card" data-subject="Toán" data-subkeys='[]' onclick="checkAccess('Toán/Toán.TN.26.ma_8004.html', 'Toán', 'Toán.TN.26.ma_8004', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Toán</span>
+                </div>
+                <div class="card-title">Toán.TN.26.ma_8004</div>
+            </div>
+            <div class="card" data-subject="Toán" data-subkeys='[]' onclick="checkAccess('Toán/Toán.TN.26.ma_8005.html', 'Toán', 'Toán.TN.26.ma_8005', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Toán</span>
+                </div>
+                <div class="card-title">Toán.TN.26.ma_8005</div>
+            </div>
+            <div class="card" data-subject="Toán" data-subkeys='[]' onclick="checkAccess('Toán/Toán.TN.26.ma_8011.html', 'Toán', 'Toán.TN.26.ma_8011', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Toán</span>
+                </div>
+                <div class="card-title">Toán.TN.26.ma_8011</div>
+            </div>
+            <div class="card" data-subject="Toán" data-subkeys='[]' onclick="checkAccess('Toán/Toán.TN.26.ma_8092.html', 'Toán', 'Toán.TN.26.ma_8092', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Toán</span>
+                </div>
+                <div class="card-title">Toán.TN.26.ma_8092</div>
+            </div>
+            <div class="card" data-subject="Toán" data-subkeys='[]' onclick="checkAccess('Toán/Toán.TN.26.ma_8892.html', 'Toán', 'Toán.TN.26.ma_8892', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Toán</span>
+                </div>
+                <div class="card-title">Toán.TN.26.ma_8892</div>
+            </div>
+            <div class="card" data-subject="Toán" data-subkeys='[]' onclick="checkAccess('Toán/Toán.TN.26.ma_9314.html', 'Toán', 'Toán.TN.26.ma_9314', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Toán</span>
+                </div>
+                <div class="card-title">Toán.TN.26.ma_9314</div>
+            </div>
+            <div class="card" data-subject="Toán" data-subkeys='[]' onclick="checkAccess('Toán/Toán.TN.26.ma_9852.html', 'Toán', 'Toán.TN.26.ma_9852', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Toán</span>
+                </div>
+                <div class="card-title">Toán.TN.26.ma_9852</div>
+            </div>
+            <div class="card" data-subject="Toán" data-subkeys='[]' onclick="checkAccess('Toán/Toán.TN.25.ma_0101.html', 'Toán', 'Toán.TN.25.ma_0101', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Toán</span>
+                </div>
+                <div class="card-title">Toán.TN.25.ma_0101</div>
+            </div>
+            <div class="card" data-subject="Toán" data-subkeys='[]' onclick="checkAccess('Toán/Toán.TN.25.ma_0102.html', 'Toán', 'Toán.TN.25.ma_0102', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Toán</span>
+                </div>
+                <div class="card-title">Toán.TN.25.ma_0102</div>
+            </div>
+            <div class="card" data-subject="Toán" data-subkeys='[]' onclick="checkAccess('Toán/Toán.TN.24.ma_0101.html', 'Toán', 'Toán.TN.24.ma_0101', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Toán</span>
+                </div>
+                <div class="card-title">Toán.TN.24.ma_0101</div>
+            </div>
+            <div class="card" data-subject="Toán" data-subkeys='[]' onclick="checkAccess('Toán/Toán.TN.24.ma_0102.html', 'Toán', 'Toán.TN.24.ma_0102', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Toán</span>
+                </div>
+                <div class="card-title">Toán.TN.24.ma_0102</div>
+            </div>
+            <div class="card" data-subject="Toán" data-subkeys='[]' onclick="checkAccess('Toán/Toán.TN.23.ma_0101.html', 'Toán', 'Toán.TN.23.ma_0101', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Toán</span>
+                </div>
+                <div class="card-title">Toán.TN.23.ma_0101</div>
+            </div>
+            <div class="card" data-subject="Toán" data-subkeys='[]' onclick="checkAccess('Toán/Toán.TN.22.ma_0101.html', 'Toán', 'Toán.TN.22.ma_0101', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Toán</span>
+                </div>
+                <div class="card-title">Toán.TN.22.ma_0101</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='[]' onclick="checkAccess('Văn/Văn.TN.26.ma_1001.html', 'Văn', 'Văn.TN.26.ma_1001', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span>
+                </div>
+                <div class="card-title">Văn.TN.26.ma_1001</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='[]' onclick="checkAccess('Văn/Văn.TN.26.ma_1002.html', 'Văn', 'Văn.TN.26.ma_1002', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span>
+                </div>
+                <div class="card-title">Văn.TN.26.ma_1002</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='[]' onclick="checkAccess('Văn/Văn.TN.26.ma_1003.html', 'Văn', 'Văn.TN.26.ma_1003', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span>
+                </div>
+                <div class="card-title">Văn.TN.26.ma_1003</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='[]' onclick="checkAccess('Văn/Văn.TN.26.ma_1004.html', 'Văn', 'Văn.TN.26.ma_1004', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span>
+                </div>
+                <div class="card-title">Văn.TN.26.ma_1004</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='[]' onclick="checkAccess('Văn/Văn.TN.26.ma_1005.html', 'Văn', 'Văn.TN.26.ma_1005', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span>
+                </div>
+                <div class="card-title">Văn.TN.26.ma_1005</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='[]' onclick="checkAccess('Văn/Văn.TN.26.ma_1006.html', 'Văn', 'Văn.TN.26.ma_1006', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span>
+                </div>
+                <div class="card-title">Văn.TN.26.ma_1006</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='[]' onclick="checkAccess('Văn/Văn.TN.26.ma_1007.html', 'Văn', 'Văn.TN.26.ma_1007', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span>
+                </div>
+                <div class="card-title">Văn.TN.26.ma_1007</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='[]' onclick="checkAccess('Văn/Văn.TN.26.ma_1008.html', 'Văn', 'Văn.TN.26.ma_1008', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span>
+                </div>
+                <div class="card-title">Văn.TN.26.ma_1008</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='[]' onclick="checkAccess('Văn/Văn.TN.26.ma_1009.html', 'Văn', 'Văn.TN.26.ma_1009', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span>
+                </div>
+                <div class="card-title">Văn.TN.26.ma_1009</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='[]' onclick="checkAccess('Văn/Văn.TN.26.ma_1010.html', 'Văn', 'Văn.TN.26.ma_1010', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span>
+                </div>
+                <div class="card-title">Văn.TN.26.ma_1010</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='[]' onclick="checkAccess('Văn/Văn.TN.26.ma_1011.html', 'Văn', 'Văn.TN.26.ma_1011', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span>
+                </div>
+                <div class="card-title">Văn.TN.26.ma_1011</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='[]' onclick="checkAccess('Văn/Văn.TN.26.ma_1012.html', 'Văn', 'Văn.TN.26.ma_1012', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span>
+                </div>
+                <div class="card-title">Văn.TN.26.ma_1012</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='[]' onclick="checkAccess('Văn/Văn.TN.26.ma_1013.html', 'Văn', 'Văn.TN.26.ma_1013', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span>
+                </div>
+                <div class="card-title">Văn.TN.26.ma_1013</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='[]' onclick="checkAccess('Văn/Văn.TN.26.ma_1014.html', 'Văn', 'Văn.TN.26.ma_1014', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span>
+                </div>
+                <div class="card-title">Văn.TN.26.ma_1014</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='[]' onclick="checkAccess('Văn/Văn.TN.26.ma_1015.html', 'Văn', 'Văn.TN.26.ma_1015', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span>
+                </div>
+                <div class="card-title">Văn.TN.26.ma_1015</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='[]' onclick="checkAccess('Văn/Văn.TN.26.ma_1016.html', 'Văn', 'Văn.TN.26.ma_1016', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span>
+                </div>
+                <div class="card-title">Văn.TN.26.ma_1016</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='[]' onclick="checkAccess('Văn/Văn.TN.26.ma_1017.html', 'Văn', 'Văn.TN.26.ma_1017', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span>
+                </div>
+                <div class="card-title">Văn.TN.26.ma_1017</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='[]' onclick="checkAccess('Văn/Văn.TN.26.ma_1018.html', 'Văn', 'Văn.TN.26.ma_1018', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span>
+                </div>
+                <div class="card-title">Văn.TN.26.ma_1018</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='[]' onclick="checkAccess('Văn/Văn.TN.26.ma_1019.html', 'Văn', 'Văn.TN.26.ma_1019', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span>
+                </div>
+                <div class="card-title">Văn.TN.26.ma_1019</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='[]' onclick="checkAccess('Văn/Văn.TN.26.ma_1020.html', 'Văn', 'Văn.TN.26.ma_1020', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span>
+                </div>
+                <div class="card-title">Văn.TN.26.ma_1020</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='[]' onclick="checkAccess('Văn/Văn.TN.26.ma_1021.html', 'Văn', 'Văn.TN.26.ma_1021', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span>
+                </div>
+                <div class="card-title">Văn.TN.26.ma_1021</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='[]' onclick="checkAccess('Văn/Văn.TN.26.ma_1022.html', 'Văn', 'Văn.TN.26.ma_1022', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span>
+                </div>
+                <div class="card-title">Văn.TN.26.ma_1022</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='[]' onclick="checkAccess('Văn/Văn.TN.26.ma_1023.html', 'Văn', 'Văn.TN.26.ma_1023', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span>
+                </div>
+                <div class="card-title">Văn.TN.26.ma_1023</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='[]' onclick="checkAccess('Văn/Văn.TN.26.ma_1025.html', 'Văn', 'Văn.TN.26.ma_1025', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span>
+                </div>
+                <div class="card-title">Văn.TN.26.ma_1025</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='[]' onclick="checkAccess('Văn/Văn.TN.26.ma_1026.html', 'Văn', 'Văn.TN.26.ma_1026', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span>
+                </div>
+                <div class="card-title">Văn.TN.26.ma_1026</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='[]' onclick="checkAccess('Văn/Văn.TN.26.ma_1027.html', 'Văn', 'Văn.TN.26.ma_1027', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span>
+                </div>
+                <div class="card-title">Văn.TN.26.ma_1027</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='[]' onclick="checkAccess('Văn/Văn.TN.26.ma_1028.html', 'Văn', 'Văn.TN.26.ma_1028', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span>
+                </div>
+                <div class="card-title">Văn.TN.26.ma_1028</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='[]' onclick="checkAccess('Văn/Văn.TN.26.ma_1029.html', 'Văn', 'Văn.TN.26.ma_1029', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span>
+                </div>
+                <div class="card-title">Văn.TN.26.ma_1029</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='["V\u0103n/Van.XA"]' onclick="checkAccess('Văn/Van.XA/Van.XA_2601.html', 'Văn', 'Van.XA_2601', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span> <span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">📁 Van.XA</span>
+                </div>
+                <div class="card-title">Van.XA_2601</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='["V\u0103n/Van.XA"]' onclick="checkAccess('Văn/Van.XA/Van.XA_2602.html', 'Văn', 'Van.XA_2602', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span> <span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">📁 Van.XA</span>
+                </div>
+                <div class="card-title">Van.XA_2602</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='["V\u0103n/Van.XA"]' onclick="checkAccess('Văn/Van.XA/Van.XA_2603.html', 'Văn', 'Van.XA_2603', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span> <span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">📁 Van.XA</span>
+                </div>
+                <div class="card-title">Van.XA_2603</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='["V\u0103n/Van.XA"]' onclick="checkAccess('Văn/Van.XA/Van.XA_2604.html', 'Văn', 'Van.XA_2604', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span> <span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">📁 Van.XA</span>
+                </div>
+                <div class="card-title">Van.XA_2604</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='["V\u0103n/Van.XA"]' onclick="checkAccess('Văn/Van.XA/Van.XA_2605.html', 'Văn', 'Van.XA_2605', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span> <span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">📁 Van.XA</span>
+                </div>
+                <div class="card-title">Van.XA_2605</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='["V\u0103n/Van.XA"]' onclick="checkAccess('Văn/Van.XA/Van.XA_2606.html', 'Văn', 'Van.XA_2606', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span> <span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">📁 Van.XA</span>
+                </div>
+                <div class="card-title">Van.XA_2606</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='["V\u0103n/Van.XA"]' onclick="checkAccess('Văn/Van.XA/Van.XA_2607.html', 'Văn', 'Van.XA_2607', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span> <span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">📁 Van.XA</span>
+                </div>
+                <div class="card-title">Van.XA_2607</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='["V\u0103n/Van.XA"]' onclick="checkAccess('Văn/Van.XA/Van.XA_2608.html', 'Văn', 'Van.XA_2608', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span> <span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">📁 Van.XA</span>
+                </div>
+                <div class="card-title">Van.XA_2608</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='["V\u0103n/Van.XA"]' onclick="checkAccess('Văn/Van.XA/Van.XA_2609.html', 'Văn', 'Van.XA_2609', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span> <span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">📁 Van.XA</span>
+                </div>
+                <div class="card-title">Van.XA_2609</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='["V\u0103n/Van.XA"]' onclick="checkAccess('Văn/Van.XA/Van.XA_2610.html', 'Văn', 'Van.XA_2610', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span> <span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">📁 Van.XA</span>
+                </div>
+                <div class="card-title">Van.XA_2610</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='["V\u0103n/Van.XA"]' onclick="checkAccess('Văn/Van.XA/Van.XA_2611.html', 'Văn', 'Van.XA_2611', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span> <span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">📁 Van.XA</span>
+                </div>
+                <div class="card-title">Van.XA_2611</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='["V\u0103n/Van.XA"]' onclick="checkAccess('Văn/Van.XA/Van.XA_2612.html', 'Văn', 'Van.XA_2612', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span> <span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">📁 Van.XA</span>
+                </div>
+                <div class="card-title">Van.XA_2612</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='["V\u0103n/Van.XA"]' onclick="checkAccess('Văn/Van.XA/Van.XA_2613.html', 'Văn', 'Van.XA_2613', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span> <span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">📁 Van.XA</span>
+                </div>
+                <div class="card-title">Van.XA_2613</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='["V\u0103n/Van.XA"]' onclick="checkAccess('Văn/Van.XA/Van.XA_2614.html', 'Văn', 'Van.XA_2614', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span> <span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">📁 Van.XA</span>
+                </div>
+                <div class="card-title">Van.XA_2614</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='["V\u0103n/Van.XA"]' onclick="checkAccess('Văn/Van.XA/Van.XA_2615.html', 'Văn', 'Van.XA_2615', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span> <span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">📁 Van.XA</span>
+                </div>
+                <div class="card-title">Van.XA_2615</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='["V\u0103n/Van.XA"]' onclick="checkAccess('Văn/Van.XA/Van.XA_2616.html', 'Văn', 'Van.XA_2616', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span> <span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">📁 Van.XA</span>
+                </div>
+                <div class="card-title">Van.XA_2616</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='["V\u0103n/Van.XA"]' onclick="checkAccess('Văn/Van.XA/Van.XA_2617.html', 'Văn', 'Van.XA_2617', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span> <span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">📁 Van.XA</span>
+                </div>
+                <div class="card-title">Van.XA_2617</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='["V\u0103n/Van.XA"]' onclick="checkAccess('Văn/Van.XA/Van.XA_2618.html', 'Văn', 'Van.XA_2618', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span> <span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">📁 Van.XA</span>
+                </div>
+                <div class="card-title">Van.XA_2618</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='["V\u0103n/Van.XA"]' onclick="checkAccess('Văn/Van.XA/Van.XA_2619.html', 'Văn', 'Van.XA_2619', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span> <span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">📁 Van.XA</span>
+                </div>
+                <div class="card-title">Van.XA_2619</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='["V\u0103n/Van.XA"]' onclick="checkAccess('Văn/Van.XA/Van.XA_2620.html', 'Văn', 'Van.XA_2620', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span> <span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">📁 Van.XA</span>
+                </div>
+                <div class="card-title">Van.XA_2620</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='["V\u0103n/Van.XA"]' onclick="checkAccess('Văn/Van.XA/Van.XA_2621.html', 'Văn', 'Van.XA_2621', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span> <span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">📁 Van.XA</span>
+                </div>
+                <div class="card-title">Van.XA_2621</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='["V\u0103n/Van.XA"]' onclick="checkAccess('Văn/Van.XA/Van.XA_2622.html', 'Văn', 'Van.XA_2622', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span> <span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">📁 Van.XA</span>
+                </div>
+                <div class="card-title">Van.XA_2622</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='["V\u0103n/Van.XA"]' onclick="checkAccess('Văn/Van.XA/Van.XA_2623.html', 'Văn', 'Van.XA_2623', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span> <span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">📁 Van.XA</span>
+                </div>
+                <div class="card-title">Van.XA_2623</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='["V\u0103n/Van.XA"]' onclick="checkAccess('Văn/Van.XA/Van.XA_2624.html', 'Văn', 'Van.XA_2624', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span> <span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">📁 Van.XA</span>
+                </div>
+                <div class="card-title">Van.XA_2624</div>
+            </div>
+            <div class="card" data-subject="Văn" data-subkeys='["V\u0103n/Van.XA"]' onclick="checkAccess('Văn/Van.XA/Van.XA_2626.html', 'Văn', 'Van.XA_2626', this)">
+                <div class="card-header">
+                    <span class="badge">Môn Văn</span> <span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">📁 Van.XA</span>
+                </div>
+                <div class="card-title">Van.XA_2626</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const subjectPasswords = {};
+        const subfolderPasswords = {"Anh/\u00d4n": "123456"};
+        const examPasswords = {};
+        let currentSubject = 'ALL';
+
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+            localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+        }
+        if (localStorage.getItem('theme') === 'light') document.body.classList.add('light-mode');
+
+        function checkAccess(url, subject, examTitle, cardElement) {
+            if (subjectPasswords.hasOwnProperty(subject)) {
+                const subjKey = 'unlocked_subject_' + subject;
+                if (sessionStorage.getItem(subjKey) !== 'true') {
+                    const pass = prompt("🔒 Môn [" + subject + "] đang được khóa bảo mật.\nVui lòng nhập mật khẩu môn:");
+                    if (pass === null) return;
+                    if (pass === subjectPasswords[subject]) {
+                        sessionStorage.setItem(subjKey, 'true');
+                        alert("✅ Mật khẩu môn chính xác!");
+                    } else {
+                        alert("❌ Mật khẩu môn không chính xác!");
+                        return;
+                    }
+                }
+            }
+
+            const subKeysAttr = cardElement.getAttribute('data-subkeys');
+            if (subKeysAttr) {
+                const subKeys = JSON.parse(subKeysAttr);
+                for (let subKey of subKeys) {
+                    if (subfolderPasswords.hasOwnProperty(subKey)) {
+                        const subSessionKey = 'unlocked_sub_' + subKey;
+                        if (sessionStorage.getItem(subSessionKey) !== 'true') {
+                            const pass = prompt("🔒 Thư mục [" + subKey + "] đang được khóa bảo mật.\nVui lòng nhập mật khẩu thư mục:");
+                            if (pass === null) return;
+                            if (pass === subfolderPasswords[subKey]) {
+                                sessionStorage.setItem(subSessionKey, 'true');
+                                alert("✅ Mật khẩu thư mục [" + subKey + "] chính xác!");
+                            } else {
+                                alert("❌ Mật khẩu thư mục không chính xác!");
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (examPasswords.hasOwnProperty(examTitle)) {
+                const examKey = 'unlocked_exam_' + examTitle;
+                if (sessionStorage.getItem(examKey) !== 'true') {
+                    const pass = prompt("🔒 Đề thi [" + examTitle + "] đang được khóa riêng.\nVui lòng nhập mật khẩu đề:");
+                    if (pass === null) return;
+                    if (pass === examPasswords[examTitle]) {
+                        sessionStorage.setItem(examKey, 'true');
+                        alert("✅ Mật khẩu đề chính xác! Đang mở đề...");
+                        window.location.href = url;
+                    } else {
+                        alert("❌ Mật khẩu đề không chính xác!");
+                        return;
+                    }
+                    return;
+                }
+            }
+
+            window.location.href = url;
+        }
+
+        function filterSubject(subj, btn) {
+            currentSubject = subj;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            filterDeThi();
+        }
+
+        function filterDeThi() {
+            const input = document.getElementById('searchInput').value.toLowerCase();
+            const cards = document.getElementsByClassName('card');
+            
+            for (let card of cards) {
+                const title = card.querySelector('.card-title').textContent.toLowerCase();
+                const subj = card.getAttribute('data-subject');
+                
+                const matchSearch = title.includes(input);
+                const matchSubject = (currentSubject === 'ALL' || subj === currentSubject);
+                
+                if (matchSearch && matchSubject) {
+                    card.style.display = "";
+                } else {
+                    card.style.display = "none";
+                }
+            }
+        }
+    </script>
+</body>
+</html>
